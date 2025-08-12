@@ -224,8 +224,7 @@ def main():
                     if res:
                         st.session_state.enhanced_prompt = res
                         st.success("Prompt enhanced!")
-                        st.rerun()
-
+                        st.experimental_rerun()
         with col2:
             num_images = st.slider("Number of images", 1, 4, 1)
             aspect_ratio = st.selectbox("Aspect ratio", ["1:1", "16:9", "9:16", "4:3", "3:4"])
@@ -281,7 +280,7 @@ def main():
 
 
         if st.session_state.edited_image:
-            st.image(st.session_state.edited_image, caption="Edited Image", use_column_width=True)
+            st.image(st.session_state.edited_image, caption="Edited Image", use_container_width=True)
             image_data = download_image(st.session_state.edited_image)
             if image_data:
                 st.download_button("⬇️ Download Result", image_data, "edited_image.png", "image/png")
@@ -295,7 +294,7 @@ def main():
         if uploaded_file:
             col1, col2 = st.columns(2)
             with col1:
-                st.image(uploaded_file, caption="Original Image", use_column_width=True)
+                st.image(uploaded_file, caption="Original Image", use_container_width = True)
                 edit_option = st.selectbox("Select Edit Option", ["Create Packshot", "Add Shadow", "Lifestyle Shot"])
                 if edit_option == "Create Packshot":
                     bg_color = st.color_picker("Background Color", "#FFFFFF")
@@ -471,7 +470,7 @@ def main():
 
             with col2:
                 if st.session_state.edited_image:
-                    st.image(st.session_state.edited_image, caption="Edited Image", use_column_width=True)
+                    st.image(st.session_state.edited_image, caption="Edited Image", use_container_width = True)
                     image_data = download_image(st.session_state.edited_image)
                     if image_data:
                         st.download_button("⬇️ Download Result", image_data, "edited_product.png", "image/png")
@@ -486,7 +485,7 @@ def main():
         if uploaded_file:
             col1, col2 = st.columns(2)
             with col1:
-                st.image(uploaded_file, caption="Original Image", use_column_width=True)
+                st.image(uploaded_file, caption="Original Image", use_container_width = True)
                 img = Image.open(uploaded_file)
                 img_width, img_height = img.size
                 aspect_ratio = img_height / img_width
@@ -499,16 +498,15 @@ def main():
                 stroke_width = st.slider("Brush width", 1, 50, 20)
                 stroke_color = st.color_picker("Brush color", "#fff")
                 canvas_result = st_canvas(
-                fill_color="rgba(255, 165, 0, 0.3)",
-                stroke_width=2,
-                stroke_color="#000000",
-                background_color="#ffffff",
-                height=300,
-                width=500,
-                drawing_mode="freedraw",
-                key="canvas",
+                    fill_color="rgba(255, 255, 255, 0.0)",
+                    stroke_width=stroke_width,
+                    stroke_color=stroke_color,
+                    drawing_mode="freedraw",
+                    background_image=img if img_array.shape[-1] == 3 else None,
+                    height=canvas_height,
+                    width=canvas_width,
+                    key="canvas"
                 )
-
                 prompt = st.text_area("Describe what to generate in the masked area")
                 negative_prompt = st.text_area("Describe what to avoid (optional)")
                 col_a, col_b = st.columns(2)
@@ -576,7 +574,7 @@ def main():
 
             with col2:
                 if st.session_state.edited_image:
-                    st.image(st.session_state.edited_image, caption="Generated Result", use_column_width=True)
+                    st.image(st.session_state.edited_image, caption="Generated Result", use_container_width = True)
                     img_bytes = download_image(st.session_state.edited_image)
                     if img_bytes:
                         st.download_button("⬇️ Download Result", img_bytes, "generated_fill.png", "image/png")
@@ -591,7 +589,7 @@ def main():
         if uploaded_file:
             col1, col2 = st.columns(2)
             with col1:
-                st.image(uploaded_file, caption="Original Image", use_column_width=True)
+                st.image(uploaded_file, caption="Original Image", use_container_width = True)
                 img = Image.open(uploaded_file)
                 img_width, img_height = img.size
                 aspect_ratio = img_height / img_width
@@ -637,7 +635,7 @@ def main():
                                 st.error(f"Error: {e}")
             with col2:
                 if st.session_state.edited_image:
-                    st.image(st.session_state.edited_image, caption="Result", use_column_width=True)
+                    st.image(st.session_state.edited_image, caption="Result", use_container_width = True)
                     img_bytes = download_image(st.session_state.edited_image)
                     if img_bytes:
                         st.download_button("⬇️ Download Result", img_bytes, "erased_image.png", "image/png", key="erase_download")
@@ -651,7 +649,7 @@ def main():
         for msg in st.session_state.chat_history:
             with st.chat_message(msg.get("role", "assistant")):
                 if msg.get("type") == "image":
-                    st.image(msg.get("content"), caption=msg.get("caption", "Image"), use_column_width=True)
+                    st.image(msg.get("content"), caption=msg.get("caption", "Image"), use_container_width = True)
                 else:
                     st.markdown(msg.get("content", ""))
 
@@ -715,7 +713,7 @@ def main():
                     if img_bytes:
                         st.session_state.chat_history.append({"role": "assistant", "type": "image", "content": img_bytes})
                         with st.chat_message("assistant"):
-                            st.image(img_bytes, caption="Generated Image", use_column_width=True)
+                            st.image(img_bytes, caption="Generated Image", use_container_width = True)
                     else:
                         with st.chat_message("assistant"):
                             st.markdown("✅ Image generated but failed to download preview. You can download it from the result URL.")
@@ -761,7 +759,7 @@ def main():
                             if new_bytes:
                                 st.session_state.chat_history.append({"role": "assistant", "type": "image", "content": new_bytes})
                                 with st.chat_message("assistant"):
-                                    st.image(new_bytes, caption="Image with Shadow", use_column_width=True)
+                                    st.image(new_bytes, caption="Image with Shadow", use_container_width = True)
                         else:
                             with st.chat_message("assistant"):
                                 st.markdown("❌ Shadow API returned no URL.")
@@ -807,7 +805,7 @@ def main():
                             if new_bytes:
                                 st.session_state.chat_history.append({"role": "assistant", "type": "image", "content": new_bytes})
                                 with st.chat_message("assistant"):
-                                    st.image(new_bytes, caption="Lifestyle Shot", use_column_width=True)
+                                    st.image(new_bytes, caption="Lifestyle Shot", use_container_width = True)
                         else:
                             with st.chat_message("assistant"):
                                 st.markdown("❌ Lifestyle API returned no URL.")
