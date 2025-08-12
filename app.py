@@ -224,7 +224,8 @@ def main():
                     if res:
                         st.session_state.enhanced_prompt = res
                         st.success("Prompt enhanced!")
-                        st.experimental_rerun()
+                        st.rerun()
+
         with col2:
             num_images = st.slider("Number of images", 1, 4, 1)
             aspect_ratio = st.selectbox("Aspect ratio", ["1:1", "16:9", "9:16", "4:3", "3:4"])
