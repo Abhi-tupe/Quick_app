@@ -26,10 +26,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+
 load_dotenv()
 
 BRIA_API_KEY = os.getenv("BRIA_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  
+
 
 if OPENAI_API_KEY:
     try:
@@ -57,9 +59,11 @@ def initialize_session_state():
         if k not in st.session_state:
             st.session_state[k] = v
 
+
 def download_image(url):
     """Download image from URL and return bytes. Safe for None inputs."""
     if not url:
+
         return None
     try:
         resp = requests.get(url, timeout=10)
@@ -146,11 +150,11 @@ def ask_llm_intent(user_input: str) -> dict:
         "If user requests adding a shadow: {\"task\":\"shadow\"}\n"
         "If user requests a lifestyle shot from an existing image: {\"task\":\"lifestyle\",\"prompt\":\"...\"}\n"
         "For normal chat responses: {\"task\":\"chat\",\"reply\":\"...\"}\n"
-        "Do NOT include any other text outside the JSON"
+        "Do NOT include any other text outside the JSON."
     )
     try:
         resp = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
+            model="gpt-4o-mini" if "gpt-4o-mini" in (openai.Model.list().data[0].id if False else "gpt-4o-mini") else "gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_input}
@@ -165,6 +169,7 @@ def ask_llm_intent(user_input: str) -> dict:
             if isinstance(parsed, dict):
                 return parsed
         except Exception:
+           
             try:
                 start = content.index("{")
                 end = content.rindex("}") + 1
@@ -183,11 +188,13 @@ def main():
 
     st.title("Quicksnap Studio")
 
+
     with st.sidebar:
         st.header("Settings")
         entered = st.text_input("Enter your Bria API key:", value=st.session_state.api_key or "", type="password")
         if entered:
             st.session_state.api_key = entered
+
 
     tabs = st.tabs([
         "🎨 Generate Image",
@@ -196,6 +203,7 @@ def main():
         "🎨 Erase Elements",
         "💬 Chat Assistant"
     ])
+
 
     with tabs[0]:
         st.header("Generate Images")
@@ -247,6 +255,7 @@ def main():
                             prompt_enhancement=False,
                             content_moderation=True
                         )
+                       
                         img_url = None
                         if isinstance(result, dict):
                             if "result_url" in result:
@@ -269,6 +278,7 @@ def main():
                     except Exception as e:
                         st.error(f"Error generating images: {e}")
 
+
         if st.session_state.edited_image:
             st.image(st.session_state.edited_image, caption="Edited Image", use_container_width=True)
             image_data = download_image(st.session_state.edited_image)
@@ -277,13 +287,14 @@ def main():
         elif st.session_state.pending_urls:
             st.info("Images are being generated. Click the refresh button in Lifestyle or Generative Fill tab to check.")
 
+
     with tabs[1]:
         st.header("Product Photography")
         uploaded_file = st.file_uploader("Upload Product Image", type=["png", "jpg", "jpeg"], key="product_upload")
         if uploaded_file:
             col1, col2 = st.columns(2)
             with col1:
-                st.image(uploaded_file, caption="Original Image", use_container_width=True)
+                st.image(uploaded_file, caption="Original Image", use_container_width = True)
                 edit_option = st.selectbox("Select Edit Option", ["Create Packshot", "Add Shadow", "Lifestyle Shot"])
                 if edit_option == "Create Packshot":
                     bg_color = st.color_picker("Background Color", "#FFFFFF")
@@ -295,6 +306,7 @@ def main():
                             try:
                                 image_data = uploaded_file.getvalue()
                                 if force_rmbg:
+                                   
                                     try:
                                         from services.background_service import remove_background
                                         bg_result = remove_background(st.session_state.api_key, image_data, content_moderation=content_moderation)
@@ -304,6 +316,7 @@ def main():
                                             st.error("Background removal failed.")
                                             image_data = None
                                     except Exception:
+                                     
                                         pass
                                 if image_data:
                                     result = create_packshot(st.session_state.api_key, image_data, background_color=bg_color, sku=sku or None, force_rmbg=force_rmbg, content_moderation=content_moderation)
@@ -402,6 +415,7 @@ def main():
                                         content_moderation=False,
                                         sku=None
                                     )
+                                   
                                     img_url = None
                                     if isinstance(result, dict):
                                         if "result_url" in result:
@@ -456,12 +470,13 @@ def main():
 
             with col2:
                 if st.session_state.edited_image:
-                    st.image(st.session_state.edited_image, caption="Edited Image", use_container_width=True)
+                    st.image(st.session_state.edited_image, caption="Edited Image", use_container_width = True)
                     image_data = download_image(st.session_state.edited_image)
                     if image_data:
                         st.download_button("⬇️ Download Result", image_data, "edited_product.png", "image/png")
                 elif st.session_state.pending_urls:
                     st.info("Images are being generated. Use refresh controls in other tabs to check status.")
+
 
     with tabs[2]:
         st.header("🎨 Generative Fill")
@@ -470,42 +485,32 @@ def main():
         if uploaded_file:
             col1, col2 = st.columns(2)
             with col1:
-                st.image(uploaded_file, caption="Original Image", use_container_width=True)
-                try:
-                    img = Image.open(uploaded_file)
-                    img_width, img_height = img.size
-                    aspect_ratio = img_height / img_width
-                    canvas_width = min(img_width, 800)
-                    canvas_height = int(canvas_width * aspect_ratio)
-                    img = img.resize((canvas_width, canvas_height))
-                    if img.mode != 'RGB':
-                        img = img.convert('RGB')
-                    # Convert PIL Image to bytes for st_canvas
-                    img_bytes = io.BytesIO()
-                    img.save(img_bytes, format='PNG')
-                    img_bytes.seek(0)
-                    st.write(f"Debug: Image mode: {img.mode}, Size: {img.size}")  # Debugging output
-                except Exception as e:
-                    st.error(f"Error processing uploaded image: {e}")
-                    return
-
+                st.image(uploaded_file, caption="Original Image", use_container_width = True)
+                img = Image.open(uploaded_file)
+                img_width, img_height = img.size
+                aspect_ratio = img_height / img_width
+                canvas_width = min(img_width, 800)
+                canvas_height = int(canvas_width * aspect_ratio)
+                img = img.resize((canvas_width, canvas_height))
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                img_array = np.array(img).astype(np.uint8)
                 stroke_width = st.slider("Brush width", 1, 50, 20)
                 stroke_color = st.color_picker("Brush color", "#fff")
+                from PIL import Image
 
-                try:
-                    canvas_result = st_canvas(
-                        fill_color="rgba(255, 165, 0, 0.3)",
-                        stroke_width=stroke_width,
-                        stroke_color=stroke_color,
-                        background_image=img_bytes,
-                        height=canvas_height,
-                        width=canvas_width,
-                        drawing_mode="freedraw",
-                        key="canvas",
-                    )
-                except Exception as e:
-                    st.error(f"Error initializing canvas: {e}")
-                    return
+                bg_image = Image.open("your_image.jpg") 
+                 # Load as image object
+                canvas_result = st_canvas(
+                    fill_color="rgba(255, 165, 0, 0.3)",
+                    stroke_width=2,
+                    stroke_color="#000000",
+                    background_image=bg_image,  # Pass image object, not string
+                    height=300,
+                    width=500,
+                    drawing_mode="freedraw",
+                    key="canvas",
+                )
 
                 prompt = st.text_area("Describe what to generate in the masked area")
                 negative_prompt = st.text_area("Describe what to avoid (optional)")
@@ -574,12 +579,13 @@ def main():
 
             with col2:
                 if st.session_state.edited_image:
-                    st.image(st.session_state.edited_image, caption="Generated Result", use_container_width=True)
+                    st.image(st.session_state.edited_image, caption="Generated Result", use_container_width = True)
                     img_bytes = download_image(st.session_state.edited_image)
                     if img_bytes:
                         st.download_button("⬇️ Download Result", img_bytes, "generated_fill.png", "image/png")
                 elif st.session_state.pending_urls:
                     st.info("Generation in progress. Click the refresh button above to check status.")
+
 
     with tabs[3]:
         st.header("🎨 Erase Elements")
@@ -588,44 +594,27 @@ def main():
         if uploaded_file:
             col1, col2 = st.columns(2)
             with col1:
-                st.image(uploaded_file, caption="Original Image", use_container_width=True)
-                try:
-                    img = Image.open(uploaded_file)
-                    img_width,
-
- img_height = img.size
-                    aspect_ratio = img_height / img_width
-                    canvas_width = min(img_width, 800)
-                    canvas_height = int(canvas_width * aspect_ratio)
-                    img = img.resize((canvas_width, canvas_height))
-                    if img.mode != 'RGB':
-                        img = img.convert('RGB')
-                    # Convert PIL Image to bytes for st_canvas
-                    img_bytes = io.BytesIO()
-                    img.save(img_bytes, format='PNG')
-                    img_bytes.seek(0)
-                    st.write(f"Debug: Image mode: {img.mode}, Size: {img.size}")  # Debugging output
-                except Exception as e:
-                    st.error(f"Error processing uploaded image: {e}")
-                    return
-
+                st.image(uploaded_file, caption="Original Image", use_container_width = True)
+                img = Image.open(uploaded_file)
+                img_width, img_height = img.size
+                aspect_ratio = img_height / img_width
+                canvas_width = min(img_width, 800)
+                canvas_height = int(canvas_width * aspect_ratio)
+                img = img.resize((canvas_width, canvas_height))
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
                 stroke_width = st.slider("Brush width", 1, 50, 20, key="erase_brush_width")
                 stroke_color = st.color_picker("Brush color", "#fff", key="erase_brush_color")
-                try:
-                    canvas_result = st_canvas(
-                        fill_color="rgba(255, 255, 255, 0.0)",
-                        stroke_width=stroke_width,
-                        stroke_color=stroke_color,
-                        background_image=img_bytes,
-                        drawing_mode="freedraw",
-                        height=canvas_height,
-                        width=canvas_width,
-                        key="erase_canvas"
-                    )
-                except Exception as e:
-                    st.error(f"Error initializing canvas: {e}")
-                    return
-
+                canvas_result = st_canvas(
+                    fill_color="rgba(255, 255, 255, 0.0)",
+                    stroke_width=stroke_width,
+                    stroke_color=stroke_color,
+                    background_image=img,
+                    drawing_mode="freedraw",
+                    height=canvas_height,
+                    width=canvas_width,
+                    key="erase_canvas"
+                )
                 content_moderation = st.checkbox("Enable Content Moderation", False, key="erase_content_mod")
                 if st.button("🎨 Erase Selected Area", key="erase_btn"):
                     if canvas_result.image_data is None:
@@ -651,19 +640,21 @@ def main():
                                 st.error(f"Error: {e}")
             with col2:
                 if st.session_state.edited_image:
-                    st.image(st.session_state.edited_image, caption="Result", use_container_width=True)
+                    st.image(st.session_state.edited_image, caption="Result", use_container_width = True)
                     img_bytes = download_image(st.session_state.edited_image)
                     if img_bytes:
                         st.download_button("⬇️ Download Result", img_bytes, "erased_image.png", "image/png", key="erase_download")
 
+
     with tabs[4]:
         st.header("💬 AI Chat Assistant")
         st.markdown("Talk normally. I can chat and also create/edit images.")
-        
+
+      
         for msg in st.session_state.chat_history:
             with st.chat_message(msg.get("role", "assistant")):
                 if msg.get("type") == "image":
-                    st.image(msg.get("content"), caption=msg.get("caption", "Image"), use_container_width=True)
+                    st.image(msg.get("content"), caption=msg.get("caption", "Image"), use_container_width = True)
                 else:
                     st.markdown(msg.get("content", ""))
 
@@ -671,14 +662,17 @@ def main():
         if not user_input:
             return  
 
+      
         st.session_state.chat_history.append({"role": "user", "content": user_input})
         with st.chat_message("user"):
             st.markdown(user_input)
+
 
         intent = {"task": "chat", "reply": user_input}
         if openai:
             intent = ask_llm_intent(user_input)
         else:
+           
             t = user_input.lower()
             if "generate" in t or "create" in t:
                 intent = {"task": "generate", "prompt": user_input}
@@ -718,19 +712,19 @@ def main():
                             if isinstance(it, dict) and "urls" in it and it["urls"]:
                                 img_url = it["urls"][0]
                                 break
-                    if img_url:
-                        st.session_state.last_image = img_url
-                        img_bytes = download_image(img_url)
-                        if img_bytes:
-                            st.session_state.chat_history.append({"role": "assistant", "type": "image", "content": img_bytes})
-                            with st.chat_message("assistant"):
-                                st.image(img_bytes, caption="Generated Image", use_container_width=True)
-                        else:
-                            with st.chat_message("assistant"):
-                                st.markdown("✅ Image generated but failed to download preview. You can download it from the result URL.")
+                if img_url:
+                    st.session_state.last_image = img_url
+                    img_bytes = download_image(img_url)
+                    if img_bytes:
+                        st.session_state.chat_history.append({"role": "assistant", "type": "image", "content": img_bytes})
+                        with st.chat_message("assistant"):
+                            st.image(img_bytes, caption="Generated Image", use_container_width = True)
                     else:
                         with st.chat_message("assistant"):
-                            st.markdown("❌ Could not generate the image (no URL returned).")
+                            st.markdown("✅ Image generated but failed to download preview. You can download it from the result URL.")
+                else:
+                    with st.chat_message("assistant"):
+                        st.markdown("❌ Could not generate the image (no URL returned).")
             except Exception as e:
                 with st.chat_message("assistant"):
                     st.markdown(f"⚠️ Error: {e}")
@@ -770,7 +764,7 @@ def main():
                             if new_bytes:
                                 st.session_state.chat_history.append({"role": "assistant", "type": "image", "content": new_bytes})
                                 with st.chat_message("assistant"):
-                                    st.image(new_bytes, caption="Image with Shadow", use_container_width=True)
+                                    st.image(new_bytes, caption="Image with Shadow", use_container_width = True)
                         else:
                             with st.chat_message("assistant"):
                                 st.markdown("❌ Shadow API returned no URL.")
@@ -816,7 +810,7 @@ def main():
                             if new_bytes:
                                 st.session_state.chat_history.append({"role": "assistant", "type": "image", "content": new_bytes})
                                 with st.chat_message("assistant"):
-                                    st.image(new_bytes, caption="Lifestyle Shot", use_container_width=True)
+                                    st.image(new_bytes, caption="Lifestyle Shot", use_container_width = True)
                         else:
                             with st.chat_message("assistant"):
                                 st.markdown("❌ Lifestyle API returned no URL.")
@@ -825,10 +819,12 @@ def main():
                             st.markdown(f"⚠️ Error: {e}")
 
         else:
+            # regular chat
             reply = intent.get("reply", "I'm here to chat or help with images!")
             st.session_state.chat_history.append({"role": "assistant", "content": reply})
             with st.chat_message("assistant"):
                 st.markdown(reply)
+
 
 if __name__ == "__main__":
     main()
