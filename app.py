@@ -499,15 +499,16 @@ def main():
                 stroke_width = st.slider("Brush width", 1, 50, 20)
                 stroke_color = st.color_picker("Brush color", "#fff")
                 canvas_result = st_canvas(
-                    fill_color="rgba(255, 255, 255, 0.0)",
-                    stroke_width=stroke_width,
-                    stroke_color=stroke_color,
-                    drawing_mode="freedraw",
-                    background_image=img if img_array.shape[-1] == 3 else None,
-                    height=canvas_height,
-                    width=canvas_width,
-                    key="canvas"
+                fill_color="rgba(255, 165, 0, 0.3)",
+                stroke_width=2,
+                stroke_color="#000000",
+                background_color="#ffffff",
+                height=300,
+                width=500,
+                drawing_mode="freedraw",
+                key="canvas",
                 )
+
                 prompt = st.text_area("Describe what to generate in the masked area")
                 negative_prompt = st.text_area("Describe what to avoid (optional)")
                 col_a, col_b = st.columns(2)
