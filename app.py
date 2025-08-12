@@ -471,28 +471,41 @@ def main():
             col1, col2 = st.columns(2)
             with col1:
                 st.image(uploaded_file, caption="Original Image", use_container_width=True)
-                img = Image.open(uploaded_file)
-                img_width, img_height = img.size
-                aspect_ratio = img_height / img_width
-                canvas_width = min(img_width, 800)
-                canvas_height = int(canvas_width * aspect_ratio)
-                img = img.resize((canvas_width, canvas_height))
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
+                try:
+                    img = Image.open(uploaded_file)
+                    img_width, img_height = img.size
+                    aspect_ratio = img_height / img_width
+                    canvas_width = min(img_width, 800)
+                    canvas_height = int(canvas_width * aspect_ratio)
+                    img = img.resize((canvas_width, canvas_height))
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    # Convert PIL Image to bytes for st_canvas
+                    img_bytes = io.BytesIO()
+                    img.save(img_bytes, format='PNG')
+                    img_bytes.seek(0)
+                    st.write(f"Debug: Image mode: {img.mode}, Size: {img.size}")  # Debugging output
+                except Exception as e:
+                    st.error(f"Error processing uploaded image: {e}")
+                    return
+
                 stroke_width = st.slider("Brush width", 1, 50, 20)
                 stroke_color = st.color_picker("Brush color", "#fff")
 
-                # Use the resized image directly as the background for st_canvas
-                canvas_result = st_canvas(
-                    fill_color="rgba(255, 165, 0, 0.3)",
-                    stroke_width=stroke_width,
-                    stroke_color=stroke_color,
-                    background_image=img,
-                    height=canvas_height,
-                    width=canvas_width,
-                    drawing_mode="freedraw",
-                    key="canvas",
-                )
+                try:
+                    canvas_result = st_canvas(
+                        fill_color="rgba(255, 165, 0, 0.3)",
+                        stroke_width=stroke_width,
+                        stroke_color=stroke_color,
+                        background_image=img_bytes,
+                        height=canvas_height,
+                        width=canvas_width,
+                        drawing_mode="freedraw",
+                        key="canvas",
+                    )
+                except Exception as e:
+                    st.error(f"Error initializing canvas: {e}")
+                    return
 
                 prompt = st.text_area("Describe what to generate in the masked area")
                 negative_prompt = st.text_area("Describe what to avoid (optional)")
@@ -576,26 +589,43 @@ def main():
             col1, col2 = st.columns(2)
             with col1:
                 st.image(uploaded_file, caption="Original Image", use_container_width=True)
-                img = Image.open(uploaded_file)
-                img_width, img_height = img.size
-                aspect_ratio = img_height / img_width
-                canvas_width = min(img_width, 800)
-                canvas_height = int(canvas_width * aspect_ratio)
-                img = img.resize((canvas_width, canvas_height))
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
+                try:
+                    img = Image.open(uploaded_file)
+                    img_width,
+
+ img_height = img.size
+                    aspect_ratio = img_height / img_width
+                    canvas_width = min(img_width, 800)
+                    canvas_height = int(canvas_width * aspect_ratio)
+                    img = img.resize((canvas_width, canvas_height))
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    # Convert PIL Image to bytes for st_canvas
+                    img_bytes = io.BytesIO()
+                    img.save(img_bytes, format='PNG')
+                    img_bytes.seek(0)
+                    st.write(f"Debug: Image mode: {img.mode}, Size: {img.size}")  # Debugging output
+                except Exception as e:
+                    st.error(f"Error processing uploaded image: {e}")
+                    return
+
                 stroke_width = st.slider("Brush width", 1, 50, 20, key="erase_brush_width")
                 stroke_color = st.color_picker("Brush color", "#fff", key="erase_brush_color")
-                canvas_result = st_canvas(
-                    fill_color="rgba(255, 255, 255, 0.0)",
-                    stroke_width=stroke_width,
-                    stroke_color=stroke_color,
-                    background_image=img,
-                    drawing_mode="freedraw",
-                    height=canvas_height,
-                    width=canvas_width,
-                    key="erase_canvas"
-                )
+                try:
+                    canvas_result = st_canvas(
+                        fill_color="rgba(255, 255, 255, 0.0)",
+                        stroke_width=stroke_width,
+                        stroke_color=stroke_color,
+                        background_image=img_bytes,
+                        drawing_mode="freedraw",
+                        height=canvas_height,
+                        width=canvas_width,
+                        key="erase_canvas"
+                    )
+                except Exception as e:
+                    st.error(f"Error initializing canvas: {e}")
+                    return
+
                 content_moderation = st.checkbox("Enable Content Moderation", False, key="erase_content_mod")
                 if st.button("🎨 Erase Selected Area", key="erase_btn"):
                     if canvas_result.image_data is None:
